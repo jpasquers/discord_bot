@@ -3,9 +3,8 @@ var auth = require('./auth.json');
 const path = require("path");
 const fs = require("fs");
 
-const THE_SCUTTLE_SHUTTLE = "134547573330411521";
 
-var bot = new Discord.Client({
+let bot = new Discord.Client({
     token: auth.auth_token,
     autorun: false
  });
@@ -30,8 +29,22 @@ get_sound_file = (message) => {
     }
 }
 
-handle_message = (message) => {
-    let channel_id = THE_SCUTTLE_SHUTTLE;
+get_voice_channel = (user_id) => {
+    for (channel_id in bot.channels) {
+        let channel = bot.channels[channel_id];
+        if (user_id in channel.members) {
+            return channel_id;
+        }
+    }
+    return null;
+}
+
+handle_message = (message, user_id) => {
+    let channel_id = get_voice_channel(user_id);
+    if (!channel_id) {
+        console.log("damn");
+        return;
+    }
     let file_name = get_sound_file(message);
     if (!file_name) return;
     bot.joinVoiceChannel( channel_id, (error, events) => {
@@ -61,7 +74,7 @@ handle_message = (message) => {
 bot.on('message',  (user, userID, channelID, message, evt) => {
     if (message.substring(0,2) == "${") {
         sub_message = message.substring(2,message.length-1);
-        handle_message(sub_message);
+        handle_message(sub_message, userID);
     }
 });
 
