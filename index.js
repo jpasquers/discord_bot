@@ -46,6 +46,12 @@ get_sound_file = (message) => {
     else if (message == "cannot_get_out") {
         return path.join(__dirname, "sounds", "cannot_get_out.wav");
     }
+    else if (message == "exterminator") {
+        return path.join(__dirname, "sounds", "exterminator.wav");
+    }
+    else if (message == "what_hit_em") {
+        return path.join(__dirname, "sounds", "what_hit_em.wav");
+    }
     else {
         return null;
     }
