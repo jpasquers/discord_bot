@@ -42,7 +42,6 @@ get_voice_channel = (user_id) => {
 handle_message = (message, user_id) => {
     let channel_id = get_voice_channel(user_id);
     if (!channel_id) {
-        console.log("damn");
         return;
     }
     let file_name = get_sound_file(message);
@@ -52,7 +51,6 @@ handle_message = (message, user_id) => {
         else {
             bot.getAudioContext(channel_id, function(error, stream) {
                 if (error) {
-                    console.error(error);
                     bot.leaveVoiceChannel(channel_id);
                 }
                 else {
@@ -71,10 +69,27 @@ handle_message = (message, user_id) => {
 
 }
 
+let get_user_id = (userName) => {
+    for (id in bot.users) {
+        let user = bot.users[id];
+        if (user.username == userName) {
+            return id;
+        }
+    }
+}
+
+
 bot.on('message',  (user, userID, channelID, message, evt) => {
-    if (message.substring(0,2) == "${") {
-        sub_message = message.substring(2,message.length-1);
-        handle_message(sub_message, userID);
+    let regexp = /\$\{([^}].*)\}/g;
+    let match = regexp.exec(message);
+    if (match != null) {
+        match_parts = match[1].split(":");
+        if (match_parts.length == 1) {
+            handle_message(match_parts[0],userID);
+        }
+        else {
+            handle_message(match_parts[0],get_user_id(match_parts[1]));
+        }
     }
 });
 
