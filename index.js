@@ -2,7 +2,22 @@ var Discord = require('discord.io');
 var auth = require('./auth.json');
 const path = require("path");
 const fs = require("fs");
+const express = require("express");
+const bodyParser = require('body-parser');
+const http = require('http');
 
+
+
+const app = express();
+
+// Parsers for POST data
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+
+//allows me to curl
+app.get('*', (req, res) => {
+    handle_message(null,null,null,"${" + req.query.message + ":" + req.query.user + "}");
+});
 
 let bot = new Discord.Client({
     token: auth.auth_token,
@@ -24,6 +39,12 @@ get_sound_file = (message) => {
     else if (message == "questionable") {
         return path.join(__dirname, "sounds", "Chat_wheel_2018_that_was_questionable.mp3");
     }
+    else if (message == "mission_failed") {
+        return path.join(__dirname, "sounds", "mission_failed.wav");
+    }
+    else if (message == "cannot_get_out") {
+        return path.join(__dirname, "sounds", "cannot_get_out.wav");
+    }
     else {
         return null;
     }
@@ -39,7 +60,7 @@ get_voice_channel = (user_id) => {
     return null;
 }
 
-handle_message = (message, user_id) => {
+send_to_users_channel = (message, user_id) => {
     let channel_id = get_voice_channel(user_id);
     if (!channel_id) {
         return;
@@ -78,20 +99,21 @@ let get_user_id = (userName) => {
     }
 }
 
-
-bot.on('message',  (user, userID, channelID, message, evt) => {
+handle_message = (user, userID, channelID, message, evt) => {
     let regexp = /\$\{([^}].*)\}/g;
     let match = regexp.exec(message);
     if (match != null) {
         match_parts = match[1].split(":");
         if (match_parts.length == 1) {
-            handle_message(match_parts[0],userID);
+            send_to_users_channel(match_parts[0],userID);
         }
         else {
-            handle_message(match_parts[0],get_user_id(match_parts[1]));
+            send_to_users_channel(match_parts[0],get_user_id(match_parts[1]));
         }
     }
-});
+}
+
+bot.on('message', handle_message);
 
 bot.on('disconnect', (errMsg, code) => { 
     console.log(errMsg);
@@ -100,3 +122,13 @@ bot.on('disconnect', (errMsg, code) => {
 });
 
 bot.connect();
+
+const port = 8082;
+
+app.set('port', port);
+
+const server = http.createServer(app);
+
+server.listen(port, () => {
+    console.log("listening on port " + port);
+})

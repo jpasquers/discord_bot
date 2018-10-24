@@ -9,7 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.18.3",
     "discord.io": "github:woor/discord.io#gateway_v6",
+    "express": "^4.16.4",
+    "http": "0.0.0",
     "path": "^0.12.7"
   }
 }
