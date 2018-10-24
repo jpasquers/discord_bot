@@ -17,6 +17,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 //allows me to curl
 app.get('*', (req, res) => {
     handle_message(null,null,null,"${" + req.query.message + ":" + req.query.user + "}");
+    res.send("yo");
 });
 
 let bot = new Discord.Client({
