@@ -35,7 +35,7 @@ get_sound_file = (message) => {
         return path.join(__dirname, "sounds", "Chat_wheel_2018_party_horn.mp3");
     }
     else if (message == "john_cena") {
-        return path.join(__dirname, "sounds", "AND HIS NAME IS JOHN CENA.mp3");
+        return path.join(__dirname, "sounds", "john_cena.wav");
     }
     else if (message == "questionable") {
         return path.join(__dirname, "sounds", "Chat_wheel_2018_that_was_questionable.mp3");
