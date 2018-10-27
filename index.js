@@ -52,6 +52,9 @@ get_sound_file = (message) => {
     else if (message == "what_hit_em") {
         return path.join(__dirname, "sounds", "what_hit_em.wav");
     }
+    else if (message == "daddy_likes") {
+        return path.join(__dirname, "sounds", "daddy_likes.wav");
+    }
     else {
         return null;
     }
