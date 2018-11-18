@@ -5,6 +5,7 @@ const fs = require("fs");
 const express = require("express");
 const bodyParser = require('body-parser');
 const http = require('http');
+const text_table = require("text-table");
 
 
 
@@ -14,10 +15,12 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+let activeStreams = [];
+let botIsInChannel = null;
+
 //allows me to curl
 app.get('*', (req, res) => {
     handle_message(null,null,null,"${" + req.query.message + ":" + req.query.user + "}");
-    res.send("yo");
 });
 
 let bot = new Discord.Client({
@@ -31,33 +34,15 @@ let bot = new Discord.Client({
 });
 
 get_sound_file = (message) => {
-    if (message == "party_horn") {
-        return path.join(__dirname, "sounds", "Chat_wheel_2018_party_horn.mp3");
+    let extensions = ["wav","mp3","ogg"];
+    for (let i=0; i<extensions.length; i++) {
+        let extension = extensions[i];
+        let pathName = path.join(__dirname, "sounds", message + "." + extension);
+        if (fs.existsSync(pathName)) {
+            return pathName;
+        }
     }
-    else if (message == "john_cena") {
-        return path.join(__dirname, "sounds", "john_cena.wav");
-    }
-    else if (message == "questionable") {
-        return path.join(__dirname, "sounds", "Chat_wheel_2018_that_was_questionable.mp3");
-    }
-    else if (message == "mission_failed") {
-        return path.join(__dirname, "sounds", "mission_failed.wav");
-    }
-    else if (message == "cannot_get_out") {
-        return path.join(__dirname, "sounds", "cannot_get_out.wav");
-    }
-    else if (message == "exterminator") {
-        return path.join(__dirname, "sounds", "exterminator.wav");
-    }
-    else if (message == "what_hit_em") {
-        return path.join(__dirname, "sounds", "what_hit_em.wav");
-    }
-    else if (message == "daddy_likes") {
-        return path.join(__dirname, "sounds", "daddy_likes.wav");
-    }
-    else {
-        return null;
-    }
+    return null;
 }
 
 get_voice_channel = (user_id) => {
@@ -78,19 +63,26 @@ send_to_users_channel = (message, user_id) => {
     let file_name = get_sound_file(message);
     if (!file_name) return;
     bot.joinVoiceChannel( channel_id, (error, events) => {
-        if (error) return;
+        botIsInChannel = channel_id;
+        if (error) {
+            console.log(error);
+            return;
+        }
         else {
             bot.getAudioContext(channel_id, function(error, stream) {
                 if (error) {
                     bot.leaveVoiceChannel(channel_id);
                 }
                 else {
+                    fs.createWrite
                     //Create a stream to your file and pipe it to the stream
                     //Without {end: false}, it would close up the stream, so make sure to include that.
-                    fs.createReadStream(file_name).pipe(stream, {end: false});
-                
+                    let file_stream = fs.createReadStream(file_name);
+                    activeStreams.push(file_stream);
+                    file_stream.pipe(stream, {end: false});
                     //The stream fires `done` when it's got nothing else to send to Discord.
                     stream.on('done', function() {
+                        botIsInChannel = null;
                         bot.leaveVoiceChannel(channel_id);
                     }); 
                 }     
@@ -109,13 +101,52 @@ let get_user_id = (userName) => {
     }
 }
 
+let send_help_message = (channelID) => {
+    let message = "```Welcome to Joey's dank ass discord bot! To play a given sound, " +
+        "simply type ${sound}. Here is a list of potential sounds to play: \n\n";
+    fs.readdir(path.join(__dirname, "sounds"), (err, files) => {
+        let arrs = [];
+        for (let i=0; i<files.length-2; i+=3) {
+            let arr = [];
+            arr.push(files[i].toString().split(".")[0]);
+            arr.push(files[i+1].toString().split(".")[0]);
+            arr.push(files[i+2].toString().split(".")[0]);
+            arrs.push(arr);
+        }
+        message = message + text_table(arrs);
+        message = message + "\n\nIf a given sound is playing too long or breaks (some sounds just don't work atm)," + 
+            "simply type ${kill} to have the bot stop."
+        message = message + "```";
+        bot.sendMessage({
+            to: channelID,
+            message: message
+        })
+    })     
+    
+}
+
+let kill_messages = () => {
+    activeStreams.forEach((stream) => {
+        stream.close();
+        if (botIsInChannel) bot.leaveVoiceChannel(botIsInChannel);
+    })
+}
+
 handle_message = (user, userID, channelID, message, evt) => {
     let regexp = /\$\{([^}].*)\}/g;
     let match = regexp.exec(message);
     if (match != null) {
         match_parts = match[1].split(":");
         if (match_parts.length == 1) {
-            send_to_users_channel(match_parts[0],userID);
+            if (match_parts[0] == "help") {
+                send_help_message(channelID);
+            }
+            else if (match_parts[0] == "kill") {
+                kill_messages();
+            }
+            else {
+                send_to_users_channel(match_parts[0],userID);
+            }
         }
         else {
             send_to_users_channel(match_parts[0],get_user_id(match_parts[1]));
