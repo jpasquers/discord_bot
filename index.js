@@ -74,7 +74,6 @@ send_to_users_channel = (message, user_id) => {
                     bot.leaveVoiceChannel(channel_id);
                 }
                 else {
-                    fs.createWrite
                     //Create a stream to your file and pipe it to the stream
                     //Without {end: false}, it would close up the stream, so make sure to include that.
                     let file_stream = fs.createReadStream(file_name);
