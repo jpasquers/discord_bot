@@ -131,8 +131,10 @@ let kill_messages = () => {
         stream.close();
     })
     activeOtherStreams.forEach((stream) => {
-        stream.close();
+        stream.off("done");
     })
+    activeFileStreams = [];
+    activeOtherStreams = [];
     if (botIsInChannel) bot.leaveVoiceChannel(botIsInChannel);
 }
 
