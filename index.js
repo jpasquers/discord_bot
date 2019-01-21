@@ -131,7 +131,7 @@ let kill_messages = () => {
         stream.close();
     })
     activeOtherStreams.forEach((stream) => {
-        stream.off("done");
+        stream.removeAllListeners();
     })
     activeFileStreams = [];
     activeOtherStreams = [];
