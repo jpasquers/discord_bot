@@ -15,7 +15,8 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-let activeStreams = [];
+let activeFileStreams = [];
+let activeOtherStreams = [];
 let botIsInChannel = null;
 
 //allows me to curl
@@ -77,7 +78,8 @@ send_to_users_channel = (message, user_id) => {
                     //Create a stream to your file and pipe it to the stream
                     //Without {end: false}, it would close up the stream, so make sure to include that.
                     let file_stream = fs.createReadStream(file_name);
-                    activeStreams.push(file_stream);
+                    activeFileStreams.push(file_stream);
+                    activeOtherStreams.push(stream);
                     file_stream.pipe(stream, {end: false});
                     //The stream fires `done` when it's got nothing else to send to Discord.
                     stream.on('done', function() {
@@ -125,10 +127,13 @@ let send_help_message = (channelID) => {
 }
 
 let kill_messages = () => {
-    activeStreams.forEach((stream) => {
+    activeFileStreams.forEach((stream) => {
         stream.close();
-        if (botIsInChannel) bot.leaveVoiceChannel(botIsInChannel);
     })
+    activeOtherStreams.forEach((stream) => {
+        stream.close();
+    })
+    if (botIsInChannel) bot.leaveVoiceChannel(botIsInChannel);
 }
 
 handle_message = (user, userID, channelID, message, evt) => {
