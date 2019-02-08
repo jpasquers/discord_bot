@@ -17,7 +17,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 let activeFileStreams = [];
 let activeOtherStreams = [];
-let botIsInChannel = null;
+let botVoiceChannel = null;
+let timeout;
 
 //allows me to curl
 app.get('*', (req, res) => {
@@ -56,6 +57,7 @@ get_voice_channel = (user_id) => {
     return null;
 }
 
+
 send_to_users_channel = (message, user_id) => {
     let channel_id = get_voice_channel(user_id);
     if (!channel_id) {
@@ -63,33 +65,40 @@ send_to_users_channel = (message, user_id) => {
     }
     let file_name = get_sound_file(message);
     if (!file_name) return;
-    bot.joinVoiceChannel( channel_id, (error, events) => {
-        botIsInChannel = channel_id;
-        if (error) {
-            console.log(error);
-            return;
-        }
-        else {
-            bot.getAudioContext(channel_id, function(error, stream) {
-                if (error) {
-                    bot.leaveVoiceChannel(channel_id);
-                }
-                else {
-                    //Create a stream to your file and pipe it to the stream
-                    //Without {end: false}, it would close up the stream, so make sure to include that.
-                    let file_stream = fs.createReadStream(file_name);
-                    activeFileStreams.push(file_stream);
-                    activeOtherStreams.push(stream);
-                    file_stream.pipe(stream, {end: false});
-                    //The stream fires `done` when it's got nothing else to send to Discord.
-                    stream.on('done', function() {
-                        botIsInChannel = null;
+    if (botVoiceChannel && botVoiceChannel == channel_id) {
+
+    }
+    else {
+        if (botVoiceChannel) bot.leaveVoiceChannel(channel_id);
+        bot.joinVoiceChannel( channel_id, (error, events) => {
+            botVoiceChannel = channel_id;
+            if (error) {
+                console.log(error);
+                return;
+            }
+            else {
+                bot.getAudioContext(channel_id, function(error, stream) {
+                    if (error) {
                         bot.leaveVoiceChannel(channel_id);
-                    }); 
-                }     
-            })
-        }
-    });
+                    }
+                    else {
+                        //Create a stream to your file and pipe it to the stream
+                        //Without {end: false}, it would close up the stream, so make sure to include that.
+                        let file_stream = fs.createReadStream(file_name);
+                        activeFileStreams.push(file_stream);
+                        activeOtherStreams.push(stream);
+                        file_stream.pipe(stream, {end: false});
+                        //The stream fires `done` when it's got nothing else to send to Discord.
+                        stream.on('done', function() {
+                            botVoiceChannel = null;
+                            bot.leaveVoiceChannel(channel_id);
+                        }); 
+                    }     
+                })
+            }
+        });
+    }
+    
 
 }
 
@@ -135,7 +144,7 @@ let kill_messages = () => {
     })
     activeFileStreams = [];
     activeOtherStreams = [];
-    if (botIsInChannel) bot.leaveVoiceChannel(botIsInChannel);
+    if (botVoiceChannel) bot.leaveVoiceChannel(botVoiceChannel);
 }
 
 handle_message = (user, userID, channelID, message, evt) => {
